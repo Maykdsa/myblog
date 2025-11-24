@@ -1,0 +1,182 @@
+---
+title: "Atividade Cotação do Dólar"
+author: "Mayk"
+date: "2025-11-23"
+categories: [api, code, python, Dollar]
+jupyter: python3
+
+---
+
+Neste Post está a atividade sobre a cotação do Dollar.
+
+---
+
+
+# Introdução
+
+Este blog apresenta a análise das cotações do dólar utilizando dados fornecidos pela API oficial do Banco Central (PTAX). O objetivo deste trabalho é demonstrar o uso de Python para realizar consultas em APIs, tratamento de dados, geração de gráficos e construção de um blog com Quarto.
+
+Ao longo deste documento, cada célula de código será explicada detalhadamente.
+
+---
+
+# Imports Necessários
+
+Antes de qualquer coisa, é preciso importar todas as bibliotecas utilizadas no projeto.
+
+
+```python
+import calendar
+from datetime import datetime, timedelta
+import pandas as pd
+import plotly.express as px
+import requests
+```
+
+---
+
+# Função para Obter Datas do Mês
+
+Esta função recebe um mês no formato **MMYYYY** e retorna o primeiro e o último dia daquele mês.
+
+```python
+def datas(mes: str) -> tuple[datetime, datetime]:
+    """
+    Recebe o mês no formato MMYYYY e retorna a primeira e última data do mês.
+    """
+    data_inicial = datetime.strptime(mes, "%m%Y")
+    ultimo_dia = calendar.monthrange(data_inicial.year, data_inicial.month)[1]
+    data_final = data_inicial.replace(day=ultimo_dia)
+    return data_inicial, data_final
+```
+
+---
+
+# Construção das Consultas para a API
+
+As funções abaixo montam as URLs de consulta ao Banco Central.
+
+```python
+def construir_query_periodo(data_inicial: datetime, data_final: datetime) -> str:
+    return (
+        f"?%40dataInicial='{data_inicial.strftime('%m%d%Y')}'"
+        f"&%40dataFinalCotacao='{data_final.strftime('%m%d%Y')}'"
+        "&%24format=json"
+    )
+
+
+def construir_query_dia(data: datetime) -> str:
+    return f"?%40dataCotacao='{data.strftime('%m%d%Y')}'&%24format=json"
+```
+
+---
+
+# Consulta dos Dados na API PTAX
+
+Consultamos tanto um período quanto um único dia, caso seja necessário.
+
+```python
+URL_PERIODO = (
+    "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"
+    "CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)"
+)
+
+URL_DIA = (
+    "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"
+    "CotacaoDolarDia(dataCotacao=@dataCotacao)"
+)
+
+
+def consultar_periodo(data_inicial: datetime, data_final: datetime) -> list[dict]:
+    url = URL_PERIODO + construir_query_periodo(data_inicial, data_final)
+    resposta = requests.get(url).json()
+    return resposta["value"]
+
+
+def consultar_dia(data: datetime) -> dict | None:
+    url = URL_DIA + construir_query_dia(data)
+    try:
+        resposta = requests.get(url).json()
+        return resposta["value"][0]
+    except Exception:
+        return None
+```
+
+---
+
+# Processamento das Cotações
+
+Aqui garantimos que todos os dias do mês tenham valores (preenchendo faltas com o valor do dia anterior).
+
+```python
+def processar_cotacoes(cotacoes_uteis: list[dict], data_inicial: datetime, data_final: datetime) -> list[float]:
+    cotacoes = [0.0 for _ in range(data_final.day)]
+
+    for cotacao in cotacoes_uteis:
+        dia = datetime.strptime(cotacao["dataHoraCotacao"], "%Y-%m-%d %H:%M:%S.%f").day
+        cotacoes[dia - 1] = cotacao["cotacaoCompra"]
+
+    for i in range(data_final.day):
+        if cotacoes[i] == 0.0:
+            if i == 0:
+                dia_fallback = data_inicial
+                cotacao_fallback = None
+
+                while cotacao_fallback is None:
+                    dia_fallback -= timedelta(days=1)
+                    cotacao_fallback = consultar_dia(dia_fallback)
+
+                cotacoes[i] = cotacao_fallback["cotacaoCompra"]
+            else:
+                cotacoes[i] = cotacoes[i - 1]
+
+    return cotacoes
+```
+
+---
+
+# Construção do Gráfico
+
+Usamos Plotly para gerar um gráfico interativo das cotações.
+
+```python
+def construir_grafico(mes: str, cotacoes, data_inicial: datetime, data_final: datetime):
+    valores = processar_cotacoes(cotacoes, data_inicial, data_final)
+
+    dias = list(range(1, len(valores) + 1))
+
+    df = pd.DataFrame({"Dia": dias, "Cotação (R$)": valores})
+
+    fig = px.line(
+        df,
+        x="Dia",
+        y="Cotação (R$)",
+        title=f"Cotações do Dólar — {mes[:2]}/{mes[2:]}"
+    )
+    fig.show()
+```
+
+---
+
+# Execução Principal
+
+    ```{python}
+    def main():
+    mes = "052014"  # Exemplo de mês escolhido
+    data_inicial, data_final = datas(mes)
+    cotacoes = consultar_periodo(data_inicial, data_final)
+    construir_grafico(mes, cotacoes, data_inicial, data_final)
+
+
+main()
+```
+    
+
+
+---
+
+# Conclusão
+
+Este trabalho demonstrou como utilizar Python para consultar APIs públicas, tratar dados com Pandas, gerar visualizações com Plotly e apresentar tudo em formato de blog utilizando Quarto. Essa abordagem é muito usada no mercado para análise de dados profissionais.
+
+Caso precise adicionar novos gráficos, indicadores, tabelas ou análises, posso complementar o blog conforme necessário.

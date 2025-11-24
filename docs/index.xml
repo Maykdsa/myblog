@@ -1,0 +1,1174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>myblog</title>
+<link>https://your-website-url.example.com/</link>
+<atom:link href="https://your-website-url.example.com/index.xml" rel="self" type="application/rss+xml"/>
+<description>A blog built with Quarto</description>
+<generator>quarto-1.8.26</generator>
+<lastBuildDate>Sun, 23 Nov 2025 00:00:00 GMT</lastBuildDate>
+<item>
+  <title>Atividade Cotação do Dólar</title>
+  <dc:creator>Mayk </dc:creator>
+  <link>https://your-website-url.example.com/posts/post-with-code/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Neste Post está a atividade sobre a cotação do Dollar.</p>
+<hr>
+<section id="introdução" class="level1">
+<h1>Introdução</h1>
+<p>Este blog apresenta a análise das cotações do dólar utilizando dados fornecidos pela API oficial do Banco Central (PTAX). O objetivo deste trabalho é demonstrar o uso de Python para realizar consultas em APIs, tratamento de dados, geração de gráficos e construção de um blog com Quarto.</p>
+<p>Ao longo deste documento, cada célula de código será explicada detalhadamente.</p>
+<hr>
+</section>
+<section id="imports-necessários" class="level1">
+<h1>Imports Necessários</h1>
+<p>Antes de qualquer coisa, é preciso importar todas as bibliotecas utilizadas no projeto.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> calendar</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> datetime <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> datetime, timedelta</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> plotly.express <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> px</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> requests</span></code></pre></div></div>
+<hr>
+</section>
+<section id="função-para-obter-datas-do-mês" class="level1">
+<h1>Função para Obter Datas do Mês</h1>
+<p>Esta função recebe um mês no formato <strong>MMYYYY</strong> e retorna o primeiro e o último dia daquele mês.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> datas(mes: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">tuple</span>[datetime, datetime]:</span>
+<span id="cb2-2">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb2-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Recebe o mês no formato MMYYYY e retorna a primeira e última data do mês.</span></span>
+<span id="cb2-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb2-5">    data_inicial <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> datetime.strptime(mes, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%m%Y"</span>)</span>
+<span id="cb2-6">    ultimo_dia <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> calendar.monthrange(data_inicial.year, data_inicial.month)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb2-7">    data_final <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> data_inicial.replace(day<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ultimo_dia)</span>
+<span id="cb2-8">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> data_inicial, data_final</span></code></pre></div></div>
+<hr>
+</section>
+<section id="construção-das-consultas-para-a-api" class="level1">
+<h1>Construção das Consultas para a API</h1>
+<p>As funções abaixo montam as URLs de consulta ao Banco Central.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> construir_query_periodo(data_inicial: datetime, data_final: datetime) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>:</span>
+<span id="cb3-2">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> (</span>
+<span id="cb3-3">        <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"?%40dataInicial='</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>data_inicial<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>strftime(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'%m</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">%Y'</span>)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'"</span></span>
+<span id="cb3-4">        <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"&amp;%40dataFinalCotacao='</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>data_final<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>strftime(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'%m</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">%Y'</span>)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'"</span></span>
+<span id="cb3-5">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"&amp;</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%24f</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ormat=json"</span></span>
+<span id="cb3-6">    )</span>
+<span id="cb3-7"></span>
+<span id="cb3-8"></span>
+<span id="cb3-9"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> construir_query_dia(data: datetime) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>:</span>
+<span id="cb3-10">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"?%40dataCotacao='</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>data<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>strftime(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'%m</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">%Y'</span>)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'&amp;%24format=json"</span></span></code></pre></div></div>
+<hr>
+</section>
+<section id="consulta-dos-dados-na-api-ptax" class="level1">
+<h1>Consulta dos Dados na API PTAX</h1>
+<p>Consultamos tanto um período quanto um único dia, caso seja necessário.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1">URL_PERIODO <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb4-2">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"</span></span>
+<span id="cb4-3">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)"</span></span>
+<span id="cb4-4">)</span>
+<span id="cb4-5"></span>
+<span id="cb4-6">URL_DIA <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb4-7">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/"</span></span>
+<span id="cb4-8">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"CotacaoDolarDia(dataCotacao=@dataCotacao)"</span></span>
+<span id="cb4-9">)</span>
+<span id="cb4-10"></span>
+<span id="cb4-11"></span>
+<span id="cb4-12"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> consultar_periodo(data_inicial: datetime, data_final: datetime) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>]:</span>
+<span id="cb4-13">    url <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> URL_PERIODO <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> construir_query_periodo(data_inicial, data_final)</span>
+<span id="cb4-14">    resposta <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> requests.get(url).json()</span>
+<span id="cb4-15">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> resposta[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"value"</span>]</span>
+<span id="cb4-16"></span>
+<span id="cb4-17"></span>
+<span id="cb4-18"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> consultar_dia(data: datetime) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>:</span>
+<span id="cb4-19">    url <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> URL_DIA <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> construir_query_dia(data)</span>
+<span id="cb4-20">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">try</span>:</span>
+<span id="cb4-21">        resposta <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> requests.get(url).json()</span>
+<span id="cb4-22">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> resposta[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"value"</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb4-23">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">except</span> <span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">Exception</span>:</span>
+<span id="cb4-24">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span></code></pre></div></div>
+<hr>
+</section>
+<section id="processamento-das-cotações" class="level1">
+<h1>Processamento das Cotações</h1>
+<p>Aqui garantimos que todos os dias do mês tenham valores (preenchendo faltas com o valor do dia anterior).</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> processar_cotacoes(cotacoes_uteis: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>], data_inicial: datetime, data_final: datetime) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>]:</span>
+<span id="cb5-2">    cotacoes <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> _ <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(data_final.day)]</span>
+<span id="cb5-3"></span>
+<span id="cb5-4">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> cotacao <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> cotacoes_uteis:</span>
+<span id="cb5-5">        dia <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> datetime.strptime(cotacao[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"dataHoraCotacao"</span>], <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%Y-%m-</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> %H:%M:%S.</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%f</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>).day</span>
+<span id="cb5-6">        cotacoes[dia <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> cotacao[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cotacaoCompra"</span>]</span>
+<span id="cb5-7"></span>
+<span id="cb5-8">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(data_final.day):</span>
+<span id="cb5-9">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> cotacoes[i] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0</span>:</span>
+<span id="cb5-10">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>:</span>
+<span id="cb5-11">                dia_fallback <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> data_inicial</span>
+<span id="cb5-12">                cotacao_fallback <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb5-13"></span>
+<span id="cb5-14">                <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">while</span> cotacao_fallback <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">is</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>:</span>
+<span id="cb5-15">                    dia_fallback <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-=</span> timedelta(days<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb5-16">                    cotacao_fallback <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> consultar_dia(dia_fallback)</span>
+<span id="cb5-17"></span>
+<span id="cb5-18">                cotacoes[i] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> cotacao_fallback[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cotacaoCompra"</span>]</span>
+<span id="cb5-19">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span>:</span>
+<span id="cb5-20">                cotacoes[i] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> cotacoes[i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb5-21"></span>
+<span id="cb5-22">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> cotacoes</span></code></pre></div></div>
+<hr>
+</section>
+<section id="construção-do-gráfico" class="level1">
+<h1>Construção do Gráfico</h1>
+<p>Usamos Plotly para gerar um gráfico interativo das cotações.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> construir_grafico(mes: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>, cotacoes, data_inicial: datetime, data_final: datetime):</span>
+<span id="cb6-2">    valores <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> processar_cotacoes(cotacoes, data_inicial, data_final)</span>
+<span id="cb6-3"></span>
+<span id="cb6-4">    dias <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(valores) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))</span>
+<span id="cb6-5"></span>
+<span id="cb6-6">    df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Dia"</span>: dias, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Cotação (R$)"</span>: valores})</span>
+<span id="cb6-7"></span>
+<span id="cb6-8">    fig <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> px.line(</span>
+<span id="cb6-9">        df,</span>
+<span id="cb6-10">        x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Dia"</span>,</span>
+<span id="cb6-11">        y<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Cotação (R$)"</span>,</span>
+<span id="cb6-12">        title<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Cotações do Dólar — </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>mes[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>mes[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>:]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb6-13">    )</span>
+<span id="cb6-14">    fig.show()</span></code></pre></div></div>
+<hr>
+</section>
+<section id="execução-principal" class="level1">
+<h1>Execução Principal</h1>
+<pre><code>def main():
+mes = "052014"  # Exemplo de mês escolhido
+data_inicial, data_final = datas(mes)
+cotacoes = consultar_periodo(data_inicial, data_final)
+construir_grafico(mes, cotacoes, data_inicial, data_final)</code></pre>
+<p>main() ```</p>
+<hr>
+</section>
+<section id="conclusão" class="level1">
+<h1>Conclusão</h1>
+<p>Este trabalho demonstrou como utilizar Python para consultar APIs públicas, tratar dados com Pandas, gerar visualizações com Plotly e apresentar tudo em formato de blog utilizando Quarto. Essa abordagem é muito usada no mercado para análise de dados profissionais.</p>
+<p>Caso precise adicionar novos gráficos, indicadores, tabelas ou análises, posso complementar o blog conforme necessário.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>api</category>
+  <category>code</category>
+  <category>python</category>
+  <category>Dollar</category>
+  <guid>https://your-website-url.example.com/posts/post-with-code/</guid>
+  <pubDate>Sun, 23 Nov 2025 00:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Regressão linear</title>
+  <dc:creator>Mayk </dc:creator>
+  <link>https://your-website-url.example.com/posts/atividade3.py/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Neste post tem atividade da regressão linear .</p>
+<p>Não conseguir executar corretamente igual as outras estava dando erro no CODESPACE</p>
+<section id="section" class="level1">
+<h1>================================</h1>
+</section>
+<section id="instalação-das-bibliotecas" class="level1">
+<h1>Instalação das bibliotecas</h1>
+</section>
+<section id="section-1" class="level1">
+<h1>================================</h1>
+<p>import sys import subprocess</p>
+<p>def install(package): subprocess.check_call([sys.executable, “-m”, “pip”, “install”, package])</p>
+</section>
+<section id="instalando-dependências-necessárias" class="level1">
+<h1>Instalando dependências necessárias</h1>
+<p>install(“numpy”) install(“pandas”) install(“matplotlib”)</p>
+</section>
+<section id="section-2" class="level1">
+<h1>================================</h1>
+</section>
+<section id="importações" class="level1">
+<h1>Importações</h1>
+</section>
+<section id="section-3" class="level1">
+<h1>================================</h1>
+<p>import numpy as np import pandas as pd import matplotlib.pyplot as plt</p>
+</section>
+<section id="section-4" class="level1">
+<h1>================================</h1>
+</section>
+<section id="função-de-regressão-linear-ls" class="level1">
+<h1>Função de Regressão Linear (LS)</h1>
+</section>
+<section id="section-5" class="level1">
+<h1>================================</h1>
+<p>def regressao_linear(X, y): # Cálculo clássico: (XᵀX)^(-1) Xᵀy X = np.array(X) y = np.array(y) resultado = np.linalg.inv(X.T @ X) @ X.T @ y return resultado[0], resultado[1] # intercepto, inclinação</p>
+</section>
+<section id="section-6" class="level1">
+<h1>================================</h1>
+</section>
+<section id="leitura-dos-dados" class="level1">
+<h1>Leitura dos dados</h1>
+</section>
+<section id="section-7" class="level1">
+<h1>================================</h1>
+<p>dados_x = [] matriz_X = []</p>
+<p>with open(“X.txt”) as f: for linha in f: valor = float(linha.strip()) dados_x.append(valor) matriz_X.append([1.0, valor])</p>
+<p>dados_y = [] with open(“y.txt”) as f: for linha in f: dados_y.append(float(linha.strip()))</p>
+</section>
+<section id="section-8" class="level1">
+<h1>================================</h1>
+</section>
+<section id="cálculo-da-regressão" class="level1">
+<h1>Cálculo da regressão</h1>
+</section>
+<section id="section-9" class="level1">
+<h1>================================</h1>
+<p>intercepto, inclinacao = regressao_linear(matriz_X, dados_y)</p>
+</section>
+<section id="section-10" class="level1">
+<h1>================================</h1>
+</section>
+<section id="dataframe-para-análise" class="level1">
+<h1>DataFrame para análise</h1>
+</section>
+<section id="section-11" class="level1">
+<h1>================================</h1>
+<p>df = pd.DataFrame({“x”: dados_x, “y”: dados_y})</p>
+</section>
+<section id="section-12" class="level1">
+<h1>================================</h1>
+</section>
+<section id="gráfico" class="level1">
+<h1>Gráfico</h1>
+</section>
+<section id="section-13" class="level1">
+<h1>================================</h1>
+<p>plt.scatter(df[“x”], df[“y”]) plt.plot(df[“x”], intercepto + inclinacao * df[“x”]) plt.xlabel(“X”) plt.ylabel(“Y”) plt.title(“Regressão Linear”) plt.grid(True) plt.savefig(“grafico.png”) plt.show()</p>
+</section>
+<section id="section-14" class="level1">
+<h1>================================</h1>
+</section>
+<section id="conclusão" class="level1">
+<h1>Conclusão</h1>
+</section>
+<section id="section-15" class="level1">
+<h1>================================</h1>
+<p>print(“====== RESULTADO FINAL ======”) print(f”Intercepto (a): {intercepto}“) print(f”Inclinação (b): {inclinacao}“) print(”gráfico foi salvo como ‘grafico.png’.”)</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Regressão linear</category>
+  <category>code</category>
+  <category>python</category>
+  <guid>https://your-website-url.example.com/posts/atividade3.py/</guid>
+  <pubDate>Sun, 23 Nov 2025 00:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Atividade API Onibus</title>
+  <dc:creator>Mayk de Sá</dc:creator>
+  <link>https://your-website-url.example.com/posts/welcome/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<hr>
+<hr>
+<section id="introdução" class="level1">
+<h1>Introdução</h1>
+<p>Neste post apresento uma aplicação em Python que consulta a API <em>Olho Vivo</em> da SPTrans para localizar linhas de ônibus, buscar suas paradas e capturar a posição atual dos veículos. O objetivo é demonstrar o uso de APIs reais, autenticação de tokens, manipulação de dados e geração de mapas interativos com <em>Folium</em>.</p>
+<p>Toda a lógica apresentada aqui foi reescrita e reorganizada para fins acadêmicos, mantendo o funcionamento, porém com <strong>estrutura diferente do código original</strong>.</p>
+<hr>
+</section>
+<section id="importações" class="level1">
+<h1>Importações</h1>
+<p>A aplicação utiliza três módulos principais: <code>requests</code>, <code>folium</code> e <code>dotenv</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> os</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> requests</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> folium <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Map, Marker, Icon</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dotenv <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_dotenv</span></code></pre></div></div>
+<p>Carregando variáveis de ambiente:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">load_dotenv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">".env"</span>)</span></code></pre></div></div>
+<hr>
+</section>
+<section id="autenticação-na-api" class="level1">
+<h1>Autenticação na API</h1>
+<p>A API da SPTrans requer autenticação via token. Aqui encapsulei o processo em uma função clara e direta.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> autenticar_sistema(sessao: requests.Session) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">bool</span>:</span>
+<span id="cb3-2">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb3-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Realiza autenticação com o token armazenado no arquivo .env.</span></span>
+<span id="cb3-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb3-5">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"→ Autenticando no sistema da SPTrans..."</span>)</span>
+<span id="cb3-6"></span>
+<span id="cb3-7">    token <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> os.getenv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SPTRANS_TOKEN"</span>)</span>
+<span id="cb3-8">    url <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"http://api.olhovivo.sptrans.com.br/v2.1/Login/Autenticar?token=</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>token<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb3-9"></span>
+<span id="cb3-10">    resp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> sessao.post(url)</span>
+<span id="cb3-11"></span>
+<span id="cb3-12">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> resp.text.lower() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"true"</span>:</span>
+<span id="cb3-13">        <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"✔ Autenticação concluída."</span>)</span>
+<span id="cb3-14">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span></span>
+<span id="cb3-15"></span>
+<span id="cb3-16">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"✖ Token inválido ou não encontrado."</span>)</span>
+<span id="cb3-17">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span></span></code></pre></div></div>
+<hr>
+</section>
+<section id="funções-de-consulta" class="level1">
+<h1>Funções de Consulta</h1>
+<section id="buscar-linhas-por-termo" class="level3">
+<h3 class="anchored" data-anchor-id="buscar-linhas-por-termo">Buscar linhas por termo</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> obter_linhas(sessao: requests.Session, termo: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>]:</span>
+<span id="cb4-2">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"→ Buscando linhas contendo: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>termo<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb4-3">    url <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"http://api.olhovivo.sptrans.com.br/v2.1/Linha/Buscar?termosBusca=</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>termo<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb4-4">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> sessao.get(url).json()</span></code></pre></div></div>
+</section>
+<section id="buscar-paradas-da-linha" class="level3">
+<h3 class="anchored" data-anchor-id="buscar-paradas-da-linha">Buscar paradas da linha</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> obter_paradas(sessao: requests.Session, cod_linha: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>]:</span>
+<span id="cb5-2">    url <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"http://api.olhovivo.sptrans.com.br/v2.1/Parada/BuscarParadasPorLinha?codigoLinha=</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>cod_linha<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb5-3">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> sessao.get(url).json()</span></code></pre></div></div>
+</section>
+<section id="buscar-posições-dos-ônibus" class="level3">
+<h3 class="anchored" data-anchor-id="buscar-posições-dos-ônibus">Buscar posições dos ônibus</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> obter_posicoes(sessao: requests.Session, cod_linha: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>]:</span>
+<span id="cb6-2">    url <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"http://api.olhovivo.sptrans.com.br/v2.1/Posicao/Linha?codigoLinha=</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>cod_linha<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb6-3">    dados <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> sessao.get(url).json()</span>
+<span id="cb6-4">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> dados.get(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"vs"</span>, [])</span></code></pre></div></div>
+<hr>
+</section>
+</section>
+<section id="construção-do-mapa-interativo" class="level1">
+<h1>Construção do Mapa Interativo</h1>
+<p>Usamos Folium para marcar paradas e veículos.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> gerar_mapa(paradas: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>], veiculos: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> Map:</span>
+<span id="cb7-2">    centro <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [paradas[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"py"</span>], paradas[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"px"</span>]]</span>
+<span id="cb7-3">    mapa <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Map(location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>centro, zoom_start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">14</span>)</span>
+<span id="cb7-4"></span>
+<span id="cb7-5">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Marca as paradas</span></span>
+<span id="cb7-6">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> p <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> paradas:</span>
+<span id="cb7-7">        Marker(</span>
+<span id="cb7-8">            location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[p[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"py"</span>], p[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"px"</span>]],</span>
+<span id="cb7-9">            popup<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>p[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"np"</span>],</span>
+<span id="cb7-10">            icon<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>Icon(color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, icon<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"info-sign"</span>)</span>
+<span id="cb7-11">        ).add_to(mapa)</span>
+<span id="cb7-12"></span>
+<span id="cb7-13">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Marca os veículos</span></span>
+<span id="cb7-14">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> v <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> veiculos:</span>
+<span id="cb7-15">        marker <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Marker(</span>
+<span id="cb7-16">            location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[v[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"py"</span>], v[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"px"</span>]],</span>
+<span id="cb7-17">            popup<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Veículo: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>v[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'p'</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb7-18">        )</span>
+<span id="cb7-19">        marker.add_to(mapa)</span>
+<span id="cb7-20">        Icon(color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, icon<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bus"</span>, prefix<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"fa"</span>).add_to(marker)</span>
+<span id="cb7-21"></span>
+<span id="cb7-22">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> mapa</span></code></pre></div></div>
+<hr>
+</section>
+<section id="execução-da-aplicação" class="level1">
+<h1>Execução da Aplicação</h1>
+<p>O código completo da busca e geração do mapa está abaixo.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> executar_sistema():</span>
+<span id="cb8-2">    sessao <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> requests.Session()</span>
+<span id="cb8-3"></span>
+<span id="cb8-4">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">not</span> autenticar_sistema(sessao):</span>
+<span id="cb8-5">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span></span>
+<span id="cb8-6"></span>
+<span id="cb8-7">    termo_pesquisa <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Santana"</span>  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># termo exemplo</span></span>
+<span id="cb8-8">    linhas <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> obter_linhas(sessao, termo_pesquisa)</span>
+<span id="cb8-9"></span>
+<span id="cb8-10">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"→ </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(linhas)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> linhas encontradas para '</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>termo_pesquisa<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'."</span>)</span>
+<span id="cb8-11">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"→ Selecionando primeira linha válida..."</span>)</span>
+<span id="cb8-12"></span>
+<span id="cb8-13">    paradas, posicoes, linha_selecionada <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb8-14"></span>
+<span id="cb8-15">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> ln <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> linhas:</span>
+<span id="cb8-16">        codigo <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ln[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cl"</span>]</span>
+<span id="cb8-17">        paradas <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> obter_paradas(sessao, codigo)</span>
+<span id="cb8-18">        posicoes <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> obter_posicoes(sessao, codigo)</span>
+<span id="cb8-19"></span>
+<span id="cb8-20">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> paradas <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">and</span> posicoes:</span>
+<span id="cb8-21">            linha_selecionada <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ln</span>
+<span id="cb8-22">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">break</span></span>
+<span id="cb8-23"></span>
+<span id="cb8-24">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">not</span> linha_selecionada:</span>
+<span id="cb8-25">        <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"✖ Nenhuma linha válida encontrada."</span>)</span>
+<span id="cb8-26">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span></span>
+<span id="cb8-27"></span>
+<span id="cb8-28">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"✔ Linha selecionada: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>linha_selecionada[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'tp'</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> - </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>linha_selecionada[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'ts'</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb8-29"></span>
+<span id="cb8-30">    mapa <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gerar_mapa(paradas, posicoes)</span>
+<span id="cb8-31">    mapa</span>
+<span id="cb8-32"></span>
+<span id="cb8-33"></span>
+<span id="cb8-34">executar_sistema()</span></code></pre></div></div>
+<hr>
+</section>
+<section id="conclusão" class="level1">
+<h1>Conclusão</h1>
+<p>Com este projeto foi possível:</p>
+<ul>
+<li>autenticar em uma API real;</li>
+<li>buscar dados de transporte público;</li>
+<li>processar e filtrar resultados úteis;</li>
+<li>exibir paradas e veículos em um mapa interativo;</li>
+<li>integrar tudo isso em um blog Quarto.</li>
+</ul>
+
+
+</section>
+
+ ]]></description>
+  <category>API</category>
+  <category>CODE</category>
+  <category>PYTHON</category>
+  <guid>https://your-website-url.example.com/posts/welcome/</guid>
+  <pubDate>Thu, 20 Nov 2025 00:00:00 GMT</pubDate>
+</item>
+</channel>
+</rss>

@@ -1,0 +1,91 @@
+---
+title: "Regressão linear"
+author: "Mayk"
+date: "2025-11-23"
+categories: [Regressão linear, code, python,]
+jupyter: python3
+---
+
+Neste post tem atividade da regressão linear .
+
+
+Não conseguir executar corretamente igual as outras estava dando erro no CODESPACE 
+
+```{python}
+# ================================
+# Instalação das bibliotecas
+# ================================
+import sys
+import subprocess
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# Instalando dependências necessárias
+install("numpy")
+install("pandas")
+install("matplotlib")
+
+# ================================
+# Importações
+# ================================
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ================================
+# Função de Regressão Linear (LS)
+# ================================
+def regressao_linear(X, y):
+    # Cálculo clássico: (XᵀX)^(-1) Xᵀy
+    X = np.array(X)
+    y = np.array(y)
+    resultado = np.linalg.inv(X.T @ X) @ X.T @ y
+    return resultado[0], resultado[1]   # intercepto, inclinação
+
+# ================================
+# Leitura dos dados
+# ================================
+dados_x = []
+matriz_X = []
+
+with open("X.txt") as f:
+    for linha in f:
+        valor = float(linha.strip())
+        dados_x.append(valor)
+        matriz_X.append([1.0, valor])
+
+dados_y = []
+with open("y.txt") as f:
+    for linha in f:
+        dados_y.append(float(linha.strip()))
+
+# ================================
+# Cálculo da regressão
+# ================================
+intercepto, inclinacao = regressao_linear(matriz_X, dados_y)
+
+# ================================
+# DataFrame para análise
+# ================================
+df = pd.DataFrame({"x": dados_x, "y": dados_y})
+
+# ================================
+# Gráfico
+# ================================
+plt.scatter(df["x"], df["y"])
+plt.plot(df["x"], intercepto + inclinacao * df["x"])
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.title("Regressão Linear")
+plt.grid(True)
+plt.savefig("grafico.png")
+plt.show()
+
+# ================================
+# Conclusão
+# ================================
+print("====== RESULTADO FINAL ======")
+print(f"Intercepto (a): {intercepto}")
+print(f"Inclinação (b): {inclinacao}")
+print("\nO gráfico foi salvo como 'grafico.png'.")

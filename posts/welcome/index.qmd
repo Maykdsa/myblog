@@ -1,0 +1,179 @@
+---
+title: "Atividade API Onibus "
+author: "Mayk de Sá"
+date: "2025-11-20"
+categories: [API,CODE,PYTHON]
+jupyter: python3
+---
+---
+
+
+--------------
+
+# Introdução
+
+Neste post apresento uma aplicação em Python que consulta a API *Olho Vivo* da SPTrans para localizar linhas de ônibus, buscar suas paradas e capturar a posição atual dos veículos. O objetivo é demonstrar o uso de APIs reais, autenticação de tokens, manipulação de dados e geração de mapas interativos com *Folium*.
+
+Toda a lógica apresentada aqui foi reescrita e reorganizada para fins acadêmicos, mantendo o funcionamento, porém com **estrutura diferente do código original**.
+
+---
+
+# Importações
+
+A aplicação utiliza três módulos principais: `requests`, `folium` e `dotenv`.
+
+```python
+import os
+import requests
+from folium import Map, Marker, Icon
+from dotenv import load_dotenv
+```
+
+Carregando variáveis de ambiente:
+
+```python
+load_dotenv(".env")
+```
+
+---
+
+# Autenticação na API
+
+A API da SPTrans requer autenticação via token. Aqui encapsulei o processo em uma função clara e direta.
+
+```python
+def autenticar_sistema(sessao: requests.Session) -> bool:
+    """
+    Realiza autenticação com o token armazenado no arquivo .env.
+    """
+    print("→ Autenticando no sistema da SPTrans...")
+
+    token = os.getenv("SPTRANS_TOKEN")
+    url = f"http://api.olhovivo.sptrans.com.br/v2.1/Login/Autenticar?token={token}"
+
+    resp = sessao.post(url)
+
+    if resp.text.lower() == "true":
+        print("✔ Autenticação concluída.")
+        return True
+
+    print("✖ Token inválido ou não encontrado.")
+    return False
+```
+
+---
+
+# Funções de Consulta
+
+### Buscar linhas por termo
+
+```python
+def obter_linhas(sessao: requests.Session, termo: str) -> list[dict]:
+    print(f"→ Buscando linhas contendo: {termo}")
+    url = f"http://api.olhovivo.sptrans.com.br/v2.1/Linha/Buscar?termosBusca={termo}"
+    return sessao.get(url).json()
+```
+
+### Buscar paradas da linha
+
+```python
+def obter_paradas(sessao: requests.Session, cod_linha: int) -> list[dict]:
+    url = f"http://api.olhovivo.sptrans.com.br/v2.1/Parada/BuscarParadasPorLinha?codigoLinha={cod_linha}"
+    return sessao.get(url).json()
+```
+
+### Buscar posições dos ônibus
+
+```python
+def obter_posicoes(sessao: requests.Session, cod_linha: int) -> list[dict]:
+    url = f"http://api.olhovivo.sptrans.com.br/v2.1/Posicao/Linha?codigoLinha={cod_linha}"
+    dados = sessao.get(url).json()
+    return dados.get("vs", [])
+```
+
+---
+
+# Construção do Mapa Interativo
+
+Usamos Folium para marcar paradas e veículos.
+
+```python
+def gerar_mapa(paradas: list[dict], veiculos: list[dict]) -> Map:
+    centro = [paradas[0]["py"], paradas[0]["px"]]
+    mapa = Map(location=centro, zoom_start=14)
+
+    # Marca as paradas
+    for p in paradas:
+        Marker(
+            location=[p["py"], p["px"]],
+            popup=p["np"],
+            icon=Icon(color="blue", icon="info-sign")
+        ).add_to(mapa)
+
+    # Marca os veículos
+    for v in veiculos:
+        marker = Marker(
+            location=[v["py"], v["px"]],
+            popup=f"Veículo: {v['p']}"
+        )
+        marker.add_to(mapa)
+        Icon(color="red", icon="bus", prefix="fa").add_to(marker)
+
+    return mapa
+```
+
+---
+
+# Execução da Aplicação
+
+O código completo da busca e geração do mapa está abaixo.
+
+```python
+def executar_sistema():
+    sessao = requests.Session()
+
+    if not autenticar_sistema(sessao):
+        return
+
+    termo_pesquisa = "Santana"  # termo exemplo
+    linhas = obter_linhas(sessao, termo_pesquisa)
+
+    print(f"→ {len(linhas)} linhas encontradas para '{termo_pesquisa}'.")
+    print("→ Selecionando primeira linha válida...")
+
+    paradas, posicoes, linha_selecionada = None, None, None
+
+    for ln in linhas:
+        codigo = ln["cl"]
+        paradas = obter_paradas(sessao, codigo)
+        posicoes = obter_posicoes(sessao, codigo)
+
+        if paradas and posicoes:
+            linha_selecionada = ln
+            break
+
+    if not linha_selecionada:
+        print("✖ Nenhuma linha válida encontrada.")
+        return
+
+    print(f"✔ Linha selecionada: {linha_selecionada['tp']} - {linha_selecionada['ts']}")
+
+    mapa = gerar_mapa(paradas, posicoes)
+    mapa
+
+
+executar_sistema()
+```
+
+---
+
+# Conclusão
+
+Com este projeto foi possível:
+
+* autenticar em uma API real;
+* buscar dados de transporte público;
+* processar e filtrar resultados úteis;
+* exibir paradas e veículos em um mapa interativo;
+* integrar tudo isso em um blog Quarto.
+
